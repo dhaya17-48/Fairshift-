@@ -72,8 +72,19 @@ export const WorkerApp: React.FC<WorkerAppProps> = ({
   const [activeTab, setActiveTab] = useState<'shift' | 'payslip' | 'hazards'>('shift');
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
-  // Active worker
-  const currentWorker = workers.find((w) => w.id === activeWorkerId) || workers[0];
+  // Active worker with reliable fallback
+  const fallbackWorker: Worker = {
+    id: sectorConfig.id === 'college' ? 'u-1' : 'c-1',
+    name: sectorConfig.id === 'college' ? 'Priya Sharma' : 'Ramesh Kumar',
+    role: sectorConfig.id === 'college' ? 'Campus Facilities Tech' : 'Masonry Specialist',
+    sector: sectorConfig.id,
+    phoneLastDigits: '8910',
+    avatarColor: 'from-amber-600 to-amber-800',
+    activeShiftStartTime: null,
+    shifts: [],
+  };
+  const currentWorker =
+    workers.find((w) => w.id === activeWorkerId) || workers[0] || fallbackWorker;
 
   // Shift timer state
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -351,7 +362,11 @@ export const WorkerApp: React.FC<WorkerAppProps> = ({
                 <div className="pt-2">
                   <button
                     type="button"
-                    onClick={() => onCheckOut(currentWorker.id, checkoutHours)}
+                    onClick={() => {
+                      if (currentWorker?.id) {
+                        onCheckOut(currentWorker.id, checkoutHours);
+                      }
+                    }}
                     className="w-full min-h-[72px] bg-rose-600 hover:bg-rose-500 active:scale-98 text-white font-black text-xl rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-rose-600/30 transition-all focus-visible:ring-4 focus-visible:ring-rose-400 outline-none cursor-pointer"
                     aria-label={t.checkOutAria}
                   >
@@ -403,7 +418,11 @@ export const WorkerApp: React.FC<WorkerAppProps> = ({
                 {/* Big Tactile CHECK IN Button */}
                 <button
                   type="button"
-                  onClick={() => onCheckIn(currentWorker.id)}
+                  onClick={() => {
+                    if (currentWorker?.id) {
+                      onCheckIn(currentWorker.id);
+                    }
+                  }}
                   className="w-full min-h-[76px] bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-slate-950 font-black text-2xl rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-emerald-500/25 transition-all focus-visible:ring-4 focus-visible:ring-emerald-400 outline-none cursor-pointer"
                   aria-label={t.checkInAria}
                 >
@@ -446,6 +465,7 @@ export const WorkerApp: React.FC<WorkerAppProps> = ({
                       type="button"
                       disabled={isSubmittingShift}
                       onClick={async () => {
+                        if (!currentWorker?.id) return;
                         setIsSubmittingShift(true);
                         try {
                           await onLogShift(currentWorker.id, manualHours);

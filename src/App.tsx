@@ -14,6 +14,7 @@ import { WorkerApp } from './components/WorkerApp';
 import { AdminDashboard } from './components/AdminDashboard';
 import { PinModal } from './components/PinModal';
 import { TRANSLATIONS } from './utils/translations';
+import { clientStore } from './services/store';
 
 // Default fallback configs while loading
 const DEFAULT_SECTOR_CONFIGS: Record<SectorType, SectorConfig> = {
@@ -43,11 +44,14 @@ export default function App() {
   const [lang, setLang] = useState<LanguageCode>('en');
   const t = TRANSLATIONS[lang];
 
-  // Workers & Hazards
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [activeWorkerId, setActiveWorkerId] = useState<string>('');
-  const [hazards, setHazards] = useState<HazardReport[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Workers & Hazards - initialized immediately with seeded workers
+  const [workers, setWorkers] = useState<Worker[]>(() => clientStore.getWorkers('construction'));
+  const [activeWorkerId, setActiveWorkerId] = useState<string>(() => {
+    const list = clientStore.getWorkers('construction');
+    return list[0]?.id || 'c-1';
+  });
+  const [hazards, setHazards] = useState<HazardReport[]>(() => clientStore.getHazards('construction'));
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Admin access & authentication
   const [isAdminView, setIsAdminView] = useState<boolean>(false);
@@ -77,26 +81,23 @@ export default function App() {
 
   // 2. Fetch workers and hazards for current sector
   const loadData = useCallback(async () => {
-    setIsLoading(true);
     try {
       const [workersData, hazardsData] = await Promise.all([
         api.getWorkers(sector),
         api.getHazards(sector),
       ]);
-      setWorkers(workersData);
-      setHazards(hazardsData);
-
-      // Select first worker if not selected or invalid for this sector
-      if (workersData.length > 0) {
+      if (workersData && workersData.length > 0) {
+        setWorkers(workersData);
         const exists = workersData.some((w) => w.id === activeWorkerId);
         if (!exists) {
           setActiveWorkerId(workersData[0].id);
         }
       }
+      if (hazardsData && hazardsData.length > 0) {
+        setHazards(hazardsData);
+      }
     } catch (err) {
       console.warn('Failed to fetch sector data:', err);
-    } finally {
-      setIsLoading(false);
     }
   }, [sector, activeWorkerId]);
 
@@ -108,6 +109,13 @@ export default function App() {
   const handleSectorChange = (newSector: SectorType) => {
     if (newSector === sector) return;
     setSector(newSector);
+    const sectorWorkers = clientStore.getWorkers(newSector);
+    setWorkers(sectorWorkers);
+    if (sectorWorkers.length > 0) {
+      setActiveWorkerId(sectorWorkers[0].id);
+    }
+    const sectorHazards = clientStore.getHazards(newSector);
+    setHazards(sectorHazards);
     const targetName = newSector === 'construction' ? t.sectorConstruction : t.sectorCollege;
     announce(t.announceSectorSwitched(targetName));
   };

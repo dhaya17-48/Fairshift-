@@ -2,5 +2,7 @@
   "name": "FairShift - Fairer & Safer Workplaces",
   "description": "Mobile-first fair work & safety platform (UN SDG 8) with transparent shift tracking, 2x overtime calculation, voice hazard reporting, multilingual accessibility, and fatigue prevention dashboard.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
